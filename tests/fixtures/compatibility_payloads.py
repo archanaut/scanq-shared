@@ -122,3 +122,36 @@ COMPAT_V1_PAIRS = [
     ("lineage.finalize.response", LINEAGE_FINALIZE_RESPONSE_V1),
     ("error.response", ERROR_RESPONSE_V1),
 ]
+
+# ---------------------------------------------------------------------------
+# Phase 2 additive compatibility payloads (v1.1.0)
+# ---------------------------------------------------------------------------
+
+PROJECT_CREATE_REQUEST_V1_1 = {
+    "name": "Project A",
+    "description": "Shared contract project",
+    "owner_id": "user-1",
+    "metadata": {},
+}
+
+DWELLING_INPUT_V1_1 = {
+    "dwelling_id": "dw-1",
+    "source": "import",
+    "configuration": {"climate_zone": "6", "num_storeys": 1},
+    "metadata": {},
+}
+
+FLOOR_PLAN_TRACE_REQUEST_V1_1 = {
+    "dwelling_id": "dw-1",
+    "image_url": "https://example.com/floor.png",
+    "image_format": "png",
+    "extract_windows": True,
+    "extract_walls": True,
+    "metadata": {},
+}
+
+COMPAT_V1_1_PAIRS = [
+    ("project.create.request", PROJECT_CREATE_REQUEST_V1_1),
+    ("dwelling.input", DWELLING_INPUT_V1_1),
+    ("ml.floor_plan.trace.request", FLOOR_PLAN_TRACE_REQUEST_V1_1),
+]

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import httpx
+
 if TYPE_CHECKING:
     from scanq_shared.schemas.errors import ErrorResponse
 
@@ -136,3 +138,41 @@ class APIError(ClientError):
             details=error_response.error.details,
             request_id=error_response.request_id,
         )
+
+
+def map_httpx_error(
+    exc: Exception,
+    *,
+    url: str,
+    timeout_seconds: int,
+) -> ClientError:
+    """Map low-level httpx exceptions to shared client exceptions."""
+    if isinstance(exc, httpx.TimeoutException):
+        return TimeoutError(operation=url, timeout_seconds=timeout_seconds)
+    if isinstance(exc, (httpx.ConnectError, httpx.NetworkError)):
+        return ConnectionError(url=url, reason=str(exc))
+    if isinstance(exc, httpx.HTTPStatusError):
+        response = exc.response
+        code = "unknown_error"
+        message = f"HTTP {response.status_code}"
+        details: dict[str, Any] = {}
+        request_id: str | None = None
+        try:
+            payload = response.json()
+            error = payload.get("error", payload)
+            code = error.get("code", code)
+            message = error.get("message", message)
+            details = error.get("details") or {}
+            request_id = payload.get("request_id") or error.get("request_id")
+        except Exception:
+            details = {"raw_text": response.text}
+        if code == "validation_error":
+            return ValidationError(message=message, details=details)
+        return APIError(
+            status_code=response.status_code,
+            code=code,
+            message=message,
+            details=details,
+            request_id=request_id,
+        )
+    return ClientError(str(exc))

@@ -15,6 +15,7 @@ Export policy:
 """
 
 from . import clients, enums, models, schemas
+from .types import ArtifactManifest, ExecutionContext
 from .version import (
     COMPATIBILITY_NOTE,
     DUAL_SUPPORT_WINDOW,
@@ -35,4 +36,6 @@ __all__ = [
     "schemas",
     "enums",
     "clients",
+    "ArtifactManifest",
+    "ExecutionContext",
 ]

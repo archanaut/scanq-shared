@@ -16,6 +16,7 @@ import pytest
 from scanq_shared.version import (
     DUAL_SUPPORT_WINDOW,
     MIN_CONSUMER_VERSION,
+    PHASE2_RELEASE,
     PHASE1_RELEASE,
     __version__,
     __version_info__,
@@ -53,6 +54,9 @@ class TestVersionConstants:
     def test_min_consumer_version_is_semver(self):
         assert SEMVER_PATTERN.match(MIN_CONSUMER_VERSION)
 
+    def test_phase2_release_is_semver(self):
+        assert SEMVER_PATTERN.match(PHASE2_RELEASE)
+
     def test_dual_support_window_is_positive_int(self):
         assert isinstance(DUAL_SUPPORT_WINDOW, int)
         assert DUAL_SUPPORT_WINDOW >= 1
@@ -62,6 +66,11 @@ class TestVersionConstants:
             "Per research.md Decision 3, dual-support window must be exactly "
             "one release. Update version.py if this policy changes."
         )
+
+    def test_current_release_is_minor_from_phase1(self):
+        assert PHASE1_RELEASE == "1.0.0"
+        assert PHASE2_RELEASE == "1.1.0"
+        assert __version__ == PHASE2_RELEASE
 
 
 class TestCompatibilityMatrixPresence:

@@ -5,6 +5,8 @@ Licensed under the Archanaut Proprietary License.
 """
 
 import logging
+import random
+import asyncio
 from typing import Any, TypeVar
 
 import httpx
@@ -46,6 +48,8 @@ class BaseClient:
         self.max_retries = max_retries
         self.trace_requests = trace_requests
         self._client: httpx.AsyncClient | None = None
+        self.base_delay = 0.5
+        self.max_delay = 30.0
 
     async def __aenter__(self) -> "BaseClient":
         """Async context manager entry."""
@@ -102,17 +106,25 @@ class BaseClient:
 
                 return response
 
-            except httpx.TimeoutException:
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.NetworkError) as exc:
                 if attempt == self.max_retries:
-                    raise
-                logger.warning(f"Timeout on attempt {attempt + 1}, retrying...")
+                    from .exceptions import map_httpx_error
 
-            except (httpx.ConnectError, httpx.NetworkError) as e:
-                if attempt == self.max_retries:
-                    raise
+                    raise map_httpx_error(
+                        exc,
+                        url=full_url,
+                        timeout_seconds=self.timeout,
+                    ) from exc
+                delay = min(self.max_delay, self.base_delay * (2**attempt))
+                sleep_for = random.uniform(0, delay)
                 logger.warning(
-                    f"Network error on attempt {attempt + 1}: {e}, retrying..."
+                    "Transient error on attempt %s/%s; retrying in %.3fs: %s",
+                    attempt + 1,
+                    self.max_retries + 1,
+                    sleep_for,
+                    exc,
                 )
+                await asyncio.sleep(sleep_for)
 
         raise RuntimeError("Unexpected: retry loop exhausted")
 
@@ -150,15 +162,18 @@ class BaseClient:
 
         from .exceptions import ValidationError as ClientValidationError
 
-        response = await self._request(
-            method,
-            url,
-            json=request_model.model_dump(mode="json"),
-        )
-        response.raise_for_status()
-
         try:
+            response = await self._request(
+                method,
+                url,
+                json=request_model.model_dump(mode="json"),
+            )
+            response.raise_for_status()
             return response_type(**response.json())
+        except httpx.HTTPStatusError as exc:
+            from .exceptions import map_httpx_error
+
+            raise map_httpx_error(exc, url=url, timeout_seconds=self.timeout) from exc
         except PydanticValidationError as exc:
             raise ClientValidationError(
                 f"Response validation failed: {exc.error_count()} errors",

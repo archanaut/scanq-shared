@@ -19,6 +19,12 @@ from enum import Enum
 # Training-studio-specific enums (canonical source: training_studio.py)
 # ---------------------------------------------------------------------------
 
+from .ml_inference import (
+    ConfidenceLevel,
+    CrossRepoErrorCode,
+    DwellingSource,
+    ExecutionStatus,
+)
 from .training_studio import ContextStatus, LineageEventType, TokenStatus
 
 
@@ -63,6 +69,10 @@ __all__ = [
     "ContextStatus",
     "TokenStatus",
     "LineageEventType",
+    "ConfidenceLevel",
+    "ExecutionStatus",
+    "DwellingSource",
+    "CrossRepoErrorCode",
     # generic
     "ServiceStatus",
     "ErrorCode",

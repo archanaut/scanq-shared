@@ -13,6 +13,21 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .dwelling import (
+    DwellingConfiguration,
+    DwellingExpectedOutputs,
+    DwellingInput,
+    FloorPlanFeatureAttributes,
+    SpecificationAttributes,
+)
+from .ml_inference import (
+    ConfidenceMetadata,
+    FloorPlanTraceRequest,
+    FloorPlanTraceResponse,
+    NatHERSAttributeRequest,
+    NatHERSAttributeResponse,
+    WindowAttributes,
+)
 from .training_studio import ActorModel, EnvironmentModel, ProjectModel
 
 
@@ -95,4 +110,16 @@ __all__ = [
     "ProjectModel",
     "EnvironmentModel",
     "ActorModel",
+    # dwelling + ml inference domain models
+    "DwellingInput",
+    "DwellingConfiguration",
+    "DwellingExpectedOutputs",
+    "SpecificationAttributes",
+    "FloorPlanFeatureAttributes",
+    "WindowAttributes",
+    "ConfidenceMetadata",
+    "FloorPlanTraceRequest",
+    "FloorPlanTraceResponse",
+    "NatHERSAttributeRequest",
+    "NatHERSAttributeResponse",
 ]

@@ -8,9 +8,9 @@ This software is licensed under the Archanaut Proprietary License. See [LICENSE]
 
 ## Scope
 
-- Shared request/response schemas for the Phase 1 fixed endpoint inventory
+- Shared request/response schemas for Phase 1 + Phase 2 endpoint inventories
 - Shared enums and error schemas
-- Typed async HTTP client (`TrainingStudioClient`) for training-studio support endpoints
+- Typed async HTTP clients (`TrainingStudioClient`, `MLInferenceClient`)
 - Version compatibility constants and migration guidance
 
 ## Non-Goals
@@ -19,7 +19,7 @@ This software is licensed under the Archanaut Proprietary License. See [LICENSE]
 - No database persistence logic
 - No accreditation pipeline runtime logic
 
-## Phase 1 Endpoint Inventory
+## Endpoint Inventory
 
 | Operation | Client Method | Path |
 |---|---|---|
@@ -27,26 +27,39 @@ This software is licensed under the Archanaut Proprietary License. See [LICENSE]
 | `auth.service-token` | `TrainingStudioClient.get_service_token` | `POST /accreditation/auth/service-token` |
 | `lineage.register` | `TrainingStudioClient.register_lineage` | `POST /accreditation/lineage/register` |
 | `lineage.finalize` | `TrainingStudioClient.finalize_lineage` | `POST /accreditation/lineage/{lineage_id}/finalize` |
+| `ml.floor-plan.trace` | `MLInferenceClient.trace_floor_plan` | `POST /ml/floor-plan/trace` |
+| `ml.nathers.attributes` | `MLInferenceClient.extract_nathers_attributes` | `POST /ml/nathers/attributes` |
 
 ## Quick Usage
 
 ```python
-from scanq_shared.clients import TrainingStudioClient
-from scanq_shared.schemas import ContextResolveResponse
+from scanq_shared.clients import TrainingStudioClient, MLInferenceClient
+from scanq_shared.models import FloorPlanTraceRequest
 
 async with TrainingStudioClient("http://training-studio:8000") as client:
-    ctx: ContextResolveResponse = await client.resolve_context(
+    ctx = await client.resolve_context(
         project_id="proj-001",
         environment_id="env-staging",
     )
     print(ctx.status)
+
+async with MLInferenceClient("http://ml-inference:9000") as client:
+    trace = await client.trace_floor_plan(
+        FloorPlanTraceRequest(
+            dwelling_id="dwelling-101",
+            image_url="https://example.com/floor.png",
+        )
+    )
+    print(trace.status)
 ```
 
 ## Consumer Migration
 
-If your repository uses local contract definitions, see the migration runbooks under
-`specs/001-phase1-shared-contracts/migrations/` for step-by-step import replacement
-guidance and the one-release dual-support policy.
+If your repository uses local contract definitions, migrate to imports from:
+- `scanq_shared.schemas` for project/environment/intake/job payloads
+- `scanq_shared.models` for dwelling + ML inference contracts
+- `scanq_shared.enums` for `ConfidenceLevel`, `ExecutionStatus`, `DwellingSource`, and `CrossRepoErrorCode`
+- `scanq_shared.clients` for `MLInferenceClient`
 
 ## Development
 
@@ -59,5 +72,4 @@ mypy src                # Type check
 
 ## Version Policy
 
-All public contract changes follow SemVer. See `specs/001-phase1-shared-contracts/research.md`
-for the compatibility classification matrix and `version.py` for the current compatibility constants.
+All public contract changes follow SemVer. Current release is **1.1.0** (MINOR additive bump from 1.0.0).

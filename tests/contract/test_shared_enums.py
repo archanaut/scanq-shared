@@ -9,8 +9,12 @@ enum drift can occur silently.
 
 
 from scanq_shared.enums import (
+    ConfidenceLevel,
     ContextStatus,
+    CrossRepoErrorCode,
+    DwellingSource,
     ErrorCode,
+    ExecutionStatus,
     LineageEventType,
     TokenStatus,
 )
@@ -116,3 +120,33 @@ class TestEnumStability:
         assert ErrorCode.UNAUTHORIZED.value == "unauthorized"
         assert ErrorCode.NOT_FOUND.value == "not_found"
         assert ErrorCode.INTERNAL_ERROR.value == "internal_error"
+
+
+class TestMlAndCrossRepoEnums:
+    def test_confidence_level_values(self):
+        assert {e.value for e in ConfidenceLevel} == {
+            "high",
+            "medium",
+            "low",
+            "insufficient",
+        }
+
+    def test_execution_status_values(self):
+        assert {e.value for e in ExecutionStatus} == {
+            "pending",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+        }
+
+    def test_dwelling_source_values(self):
+        assert {e.value for e in DwellingSource} == {
+            "import",
+            "manual",
+            "scan",
+            "legacy",
+        }
+
+    def test_cross_repo_error_code_values(self):
+        assert "validation_error" in {e.value for e in CrossRepoErrorCode}

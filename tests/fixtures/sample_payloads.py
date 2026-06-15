@@ -149,3 +149,31 @@ ERROR_RESPONSE_INTERNAL = {
     },
     "request_id": "req-uuid-12345",
 }
+
+# ============================================================================
+# Phase 2 Samples (v1.1.0)
+# ============================================================================
+
+PROJECT_CREATE_REQUEST = {
+    "name": "Accreditation Pack v2",
+    "description": "Phase 2 accreditation test pack",
+    "owner_id": "user-abc123",
+    "metadata": {"team": "accreditation"},
+}
+
+DWELLING_INPUT = {
+    "dwelling_id": "dwelling-nathrs-uip-101",
+    "source": "import",
+    "configuration": {"climate_zone": "6", "num_storeys": 1},
+    "expected_outputs": {"nathers_rating": 6.5},
+    "metadata": {},
+}
+
+ML_FLOOR_PLAN_TRACE_REQUEST = {
+    "dwelling_id": "dwelling-nathrs-uip-101",
+    "image_url": "https://storage.scanq.internal/floor-plans/uip-101.png",
+    "image_format": "png",
+    "extract_windows": True,
+    "extract_walls": True,
+    "metadata": {},
+}

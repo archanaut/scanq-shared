@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from scanq_shared.clients.exceptions import APIError
 from scanq_shared.clients.training_studio import TrainingStudioClient
 
 
@@ -49,11 +50,12 @@ class TestResolveContextErrors:
         mock_resp = _mock_http_error(404, body)
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError) as exc:
                 await client.resolve_context(
                     project_id="proj-missing",
                     environment_id="env-x",
                 )
+        assert exc.value.code == "not_found"
 
     @pytest.mark.asyncio
     async def test_401_raises_http_status_error(self):
@@ -61,7 +63,7 @@ class TestResolveContextErrors:
         mock_resp = _mock_http_error(401, body)
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError):
                 await client.resolve_context(
                     project_id="proj-x",
                     environment_id="env-x",
@@ -75,7 +77,7 @@ class TestGetServiceTokenErrors:
         mock_resp = _mock_http_error(500, body)
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError):
                 await client.get_service_token(service_id="svc")
 
 
@@ -86,7 +88,7 @@ class TestRegisterLineageErrors:
         mock_resp = _mock_http_error(422, body)
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError):
                 await client.register_lineage(
                     run_id="run-x",
                     dwelling_id="dw-x",
@@ -103,7 +105,7 @@ class TestFinalizeLineageErrors:
         mock_resp = _mock_http_error(404, body)
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError):
                 await client.finalize_lineage(
                     lineage_id="lin-missing",
                     status="finalized",

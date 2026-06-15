@@ -21,8 +21,12 @@ from scanq_shared.schemas import (
     ServiceTokenRequest,
     ServiceTokenResponse,
     ErrorResponse,
+    ProjectCreateRequest,
+    EnvironmentCreateRequest,
+    IntakeDraftGenerateRequest,
+    JobResponse,
 )
-from scanq_shared.enums import LineageEventType
+from scanq_shared.enums import DwellingSource, ExecutionStatus, LineageEventType
 
 
 class TestContextRoundtrip:
@@ -143,3 +147,25 @@ class TestErrorResponseRoundtrip:
         data = json.loads(json_str)
         rebuilt = ErrorResponse(**data)
         assert rebuilt.request_id == "req-abc"
+
+
+class TestUs1ImportSurface:
+    def test_new_schema_symbols_import_and_roundtrip(self):
+        p = ProjectCreateRequest(name="proj", owner_id="owner")
+        assert ProjectCreateRequest(**p.model_dump()) == p
+        e = EnvironmentCreateRequest(project_id="proj-1", name="staging")
+        assert e.project_id == "proj-1"
+        i = IntakeDraftGenerateRequest(
+            project_id="proj-1",
+            environment_id="env-1",
+            source_type=DwellingSource.IMPORT,
+        )
+        assert i.source_type == DwellingSource.IMPORT
+        j = JobResponse(
+            id="job-1",
+            project_id="proj-1",
+            environment_id="env-1",
+            status=ExecutionStatus.PENDING,
+            created_at=datetime.now(tz=timezone.utc),
+        )
+        assert j.status == ExecutionStatus.PENDING

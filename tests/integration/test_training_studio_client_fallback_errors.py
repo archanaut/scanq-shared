@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from scanq_shared.clients.exceptions import APIError, TimeoutError
 from scanq_shared.clients.training_studio import TrainingStudioClient
 
 
@@ -42,7 +43,7 @@ class TestFallbackErrorHandling:
         mock_resp = _mock_response_with_body(500, unexpected_body, raise_on_status=True)
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError):
                 await client.resolve_context(
                     project_id="proj-x",
                     environment_id="env-x",
@@ -59,7 +60,7 @@ class TestFallbackErrorHandling:
         )
         client = TrainingStudioClient(BASE_URL)
         with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(APIError):
                 await client.get_service_token(service_id="svc")
 
     @pytest.mark.asyncio
@@ -69,9 +70,9 @@ class TestFallbackErrorHandling:
         with patch.object(
             client,
             "_request",
-            new=AsyncMock(side_effect=httpx.TimeoutException("timed out")),
+            new=AsyncMock(side_effect=TimeoutError("register_lineage", 30)),
         ):
-            with pytest.raises(Exception):
+            with pytest.raises(TimeoutError):
                 await client.register_lineage(
                     run_id="run-x",
                     dwelling_id="dw-x",
@@ -94,3 +95,25 @@ class TestFallbackErrorHandling:
                     project_id="proj-x",
                     environment_id="env-x",
                 )
+
+
+@pytest.mark.asyncio
+async def test_request_retries_with_backoff_jitter():
+    client = TrainingStudioClient(BASE_URL, max_retries=2)
+    mock_http_client = MagicMock()
+    final_response = MagicMock(spec=httpx.Response)
+    final_response.status_code = 200
+    final_response.json.return_value = {"ok": True}
+    mock_http_client.request = AsyncMock(
+        side_effect=[
+            httpx.ConnectError("first fail"),
+            httpx.ConnectError("second fail"),
+            final_response,
+        ]
+    )
+    client._client = mock_http_client
+    with patch("scanq_shared.clients.base.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+        with patch("scanq_shared.clients.base.random.uniform", side_effect=[0.1, 0.2]):
+            response = await client._request("GET", "/health")
+    assert response is final_response
+    assert sleep_mock.await_count == 2

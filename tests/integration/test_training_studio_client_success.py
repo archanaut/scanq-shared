@@ -134,6 +134,22 @@ class TestGetServiceTokenSuccess:
         assert "read:context" in sent_scopes
         assert "write:lineage" in sent_scopes
 
+    @pytest.mark.asyncio
+    async def test_get_service_token_success_regression(self):
+        body = {
+            "status": "active",
+            "token": "tok2",
+            "token_type": "Bearer",
+            "expires_at": "2026-06-15T11:00:00Z",
+            "scopes": ["read:context"],
+            "issued_at": "2026-06-15T10:00:00Z",
+            "request_id": "req-ts-token",
+        }
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(client, "_request", new=AsyncMock(return_value=_mock_response(200, body))):
+            out = await client.get_service_token("svc")
+        assert out.request_id == "req-ts-token"
+
 
 # ---------------------------------------------------------------------------
 # lineage.register
@@ -202,3 +218,34 @@ class TestFinalizeLineageSuccess:
             )
         call_args = mock_req.call_args
         assert "lin-999" in call_args.args[1]
+
+    @pytest.mark.asyncio
+    async def test_register_and_finalize_success_regression(self):
+        register_body = {
+            "lineage_id": "lin-101",
+            "run_id": "run-101",
+            "status": "registered",
+            "registered_at": "2026-06-15T10:00:00Z",
+            "request_id": "req-reg",
+        }
+        finalize_body = {
+            "lineage_id": "lin-101",
+            "status": "finalized",
+            "finalized_at": "2026-06-15T10:05:00Z",
+            "request_id": "req-fin",
+        }
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(
+            client,
+            "_request",
+            new=AsyncMock(side_effect=[_mock_response(200, register_body), _mock_response(200, finalize_body)]),
+        ):
+            reg = await client.register_lineage(
+                run_id="run-101",
+                dwelling_id="dw-101",
+                pack_version="v1.0.0",
+                initiated_by="ci",
+                environment="staging",
+            )
+            fin = await client.finalize_lineage(lineage_id=reg.lineage_id, status="finalized")
+        assert fin.status == LineageEventType.FINALIZED

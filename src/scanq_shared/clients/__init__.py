@@ -13,11 +13,13 @@ from .exceptions import (
     TimeoutError,
     ValidationError,
 )
+from .ml_inference import MLInferenceClient
 from .training_studio import TrainingStudioClient
 
 __all__ = [
     "BaseClient",
     "TrainingStudioClient",
+    "MLInferenceClient",
     "ClientError",
     "APIError",
     "AuthenticationError",

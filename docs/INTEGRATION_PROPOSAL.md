@@ -38,6 +38,14 @@
 - Owns request/response models, shared enums, error schemas, and typed HTTP clients
 - Does **not** contain FastAPI routes, DB persistence, or accreditation pipeline business logic
 
+### scanq-ml-inference (Assistive ML Only)
+- Owns inference runtime, GPU execution, and model lifecycle for NatHERS attribute extraction
+- Integrates existing floor-plan tracing tools (commercial or open-source) as foundation adapters
+- Extracts domain-specific attributes: scale, window specs, ceiling heights, construction materials, HVAC
+- Scores confidence per attribute and provides audit trail for all predictions
+- Does **not** own accreditation decision-making, execution workflows, or deterministic validation logic
+- Does **not** replace mandatory human expert review and on-site verification workflows
+
 ## Boundary Diagram (One-Page View)
 
 ```mermaid
@@ -45,6 +53,7 @@ flowchart LR
     A[scanq-accreditation\nSystem of Execution]
     T[scanq-training-studio\nSupport Services]
     S[scanq-shared\nContracts and Typed Clients]
+    ML[scanq-ml-inference\nAssistive ML Only]
     D[(Accreditation Canonical DB)]
     X[(Excel Operational Pack)]
     W[(Processed DOCX)]
@@ -56,13 +65,19 @@ flowchart LR
     A -->|Resolve context, token, lineage| T
     T -->|Context, auth, lineage responses| A
 
+    A -->|Optional: Floor plan tracing\nand attribute extraction| ML
+    ML -->|Confidence-scored attributes| A
+    
     A <--> |Shared request/response models| S
     T <--> |Shared request/response models| S
+    ML <--> |Shared ML request/response models| S
 
     N1[Not in training-studio:\nvalidate/generate/run/compare/report]:::note
     N2[Not in scanq-shared:\nrouters, DB logic, pipeline logic]:::note
+    N3[Not in ML service:\naccreditation decisions, workflow logic,\nmandatory human review replacement]:::note
     T --- N1
     S --- N2
+    ML --- N3
 
     classDef note fill:#fff4d6,stroke:#b38f00,color:#333;
 ```
@@ -91,18 +106,66 @@ flowchart LR
 | **Dependencies** | Lightweight (Click, Pydantic, httpx, openpyxl) |
 | **State** | Scaffolded; dwelling configs in place; CLI structure ready |
 
+### scanq-ml-inference
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Assistive ML inference for NatHERS attribute extraction and floor-plan tracing |
+| **Architecture** | FastAPI service + GPU-capable inference workers + tool adapters |
+| **Key Components** | Floor-plan tool adapters (Tectly/RasterScan/open-source), NatHERS extractors (scale, windows, materials, HVAC), confidence scoring, model registry |
+| **Tool Integration** | Commercial (Tectly, RasterScan, Archilogic) OR open-source (YOLO, SAM, Tesseract, OpenCV); wrapped with common adapter interface |
+| **Deployment** | Docker containers (CPU for dev, GPU for production), optional cloud runners |
+| **Dependencies** | FastAPI, Pydantic, httpx, structlog, PyTorch/TensorFlow (for inference models) |
+| **State** | v0.1.0 scaffolded; tool integration decision made (use existing tools, not custom models) |
+
 ### Available Test Inputs
 Located: `/home/david/Archanaut/Dev/scanq_root/Accreditation Testing/`
 
 | Input Type | Files | Reusability |
 |------------|-------|------------|
-| **Floor Plans (PDF)** | `20250113 NatHERS UIP Test Dwelling 101 - Floor Plan.pdf` | Per dwelling; manual/auto tracing needed |
+| **Floor Plans (PDF)** | `20250113 NatHERS UIP Test Dwelling 101 - Floor Plan.pdf` | Per dwelling; auto tracing via tool adapter |
 | **Specifications (PDF)** | `20250113 UIP Test Dwelling 101 Specification Document.pdf` | Per dwelling; thermal + WoH specs |
 | **Test Scenarios (XLSX)** | `UIP Test Dwellings - Thermal and WoH Specs.xlsx` | Multi-row; multiple dwellings + variants |
 | **Audit Checklist (XLSX)** | `Audit Checklist 22052026 - Template.xlsx` | Template; row-per-test |
-| **Collaborative Tools (DOCX)** | `Collaborative tool testing.docx` | Free-form; needs extraction/structuring |
+| **Collaborative Tools (DOCX)** | `Collaborative tool testing.docx` | Free-form; attribute extraction candidate |
 
-**Current Challenge**: Test inputs are static files; no programmatic ingestion framework yet.
+**Current Challenge**: Test inputs are static files; ML inference is optional but can accelerate extraction workflows.
+
+---
+
+## ML Service Architecture: Floor-Plan Tracing and NatHERS Extraction
+
+### Problem Statement
+
+Floor-plan wall tracing is a **solved problem** with multiple commercial and open-source solutions available (Tectly, RasterScan, Archilogic, FloorScan.ai, or open-source YOLO/SAM pipelines). The real NatHERS challenge is domain-specific attribute extraction:
+- Scale calibration and verification
+- Window types, materials, and U-values
+- Ceiling heights and thermal zoning
+- Construction materials and assembly types
+- HVAC and insulation specifications
+
+These require human expertise and on-site verification. scanq-ml-inference should integrate existing tools and focus custom effort on NatHERS attributes.
+
+### Integration Strategy
+
+**Phase 1 (Foundation)**: Wrap existing floor-plan tool (commercial or open-source)
+- Commercial path: Tectly/RasterScan API wrapper with per-call cost model
+- Open-source path: YOLO + SAM + Tesseract + OpenCV with local compute model
+
+**Phase 2 (Custom)**: Fine-tune domain-specific models using assessor interaction traces
+- Collect assessor mouse, keyboard, UI state, and accepted outputs as training data
+- Train custom models for window classification, ceiling height inference, material identification, HVAC detection
+- Improve confidence calibration with ground truth assessor outcomes
+
+**Phase 3 (Optional)**: Specialized models if fine-tuning plateaus
+- GPU optimization if inference latency becomes a bottleneck
+- Temporal models for multi-page document reconciliation
+
+### Non-Negotiable Constraints
+
+1. **Human Expert Review**: All ML predictions must be reviewed by certified assessor before energy disclosure
+2. **On-Site Verification**: Final accreditation requires on-site assessment for accuracy validation
+3. **Audit Trail**: Every attribute prediction must include confidence score, provenance, and evidence references
+4. **Integration Point**: ML outputs are optional; accreditation must remain fully functional without ML service
 
 ---
 

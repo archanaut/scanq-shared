@@ -448,6 +448,180 @@ elif __version__.startswith("2."):
 
 ---
 
+---
+
+## Usage: ML Inference Service
+
+### Scenario 1: Trace Floor Plan
+
+```python
+import asyncio
+from scanq_shared.clients import MLInferenceClient
+from scanq_shared.models import FloorPlanTraceRequest
+
+async def trace_floor_plan():
+    """Trace floor plan using configured tool adapter."""
+    async with MLInferenceClient("http://scanq-ml-inference:8000") as ml_client:
+        response = await ml_client.trace_floor_plan(
+            FloorPlanTraceRequest(
+                dwelling_id="dwelling-101",
+                floor_plan_pdf_path="s3://bucket/dwelling-101.pdf",
+                include_ocr=True,
+                tool_preference="auto"  # Use best available tool
+            )
+        )
+        
+        print(f"Tool used: {response.tool_used}")
+        print(f"Confidence: {response.confidence_score:.2%}")
+        print(f"Warnings: {response.warnings}")
+        
+        return response
+
+trace = asyncio.run(trace_floor_plan())
+```
+
+### Scenario 2: Extract NatHERS Attributes
+
+```python
+async def extract_attributes():
+    """Extract NatHERS-specific attributes from traced floor plan."""
+    async with MLInferenceClient("http://scanq-ml-inference:8000") as ml_client:
+        response = await ml_client.extract_attributes(
+            NatHERSAttributesRequest(
+                dwelling_id="dwelling-101",
+                floor_plan_pdf_path="s3://bucket/dwelling-101.pdf",
+                specification_pdf_path="s3://bucket/dwelling-101-spec.pdf",
+                extract_scale=True,
+                extract_windows=True,
+                extract_materials=True,
+                extract_hvac=True,
+                extract_zoning=True
+            )
+        )
+        
+        print(f"Overall confidence: {response.overall_confidence:.2%}")
+        print(f"Windows extracted: {len(response.windows)}")
+        print(f"Review required: {response.review_required}")
+        
+        if response.review_required:
+            print(f"Reasons: {response.review_reasons}")
+        
+        # Use extracted attributes for downstream processing
+        for window in response.windows:
+            print(f"  {window.location}: {window.type} (confidence: {window.confidence:.2%})")
+        
+        return response
+
+attributes = asyncio.run(extract_attributes())
+```
+
+### Scenario 3: Integrated Accreditation Workflow
+
+```python
+async def accreditation_with_ml_assist(dwelling_id: str, floor_plan_path: str):
+    """Accreditation workflow with optional ML attribute pre-extraction."""
+    
+    # Step 1: Optional ML pre-assist
+    ml_attributes = None
+    if config.enable_ml_assist:
+        async with MLInferenceClient("http://scanq-ml-inference:8000") as ml_client:
+            ml_response = await ml_client.extract_attributes(
+                NatHERSAttributesRequest(
+                    dwelling_id=dwelling_id,
+                    floor_plan_pdf_path=floor_plan_path,
+                    extract_windows=True,
+                    extract_materials=True
+                )
+            )
+            
+            if ml_response.overall_confidence >= 0.75:
+                ml_attributes = ml_response
+                logger.info(
+                    "ml_attributes_available",
+                    dwelling_id=dwelling_id,
+                    confidence=ml_response.overall_confidence
+                )
+            else:
+                logger.warning(
+                    "ml_attributes_low_confidence",
+                    dwelling_id=dwelling_id,
+                    confidence=ml_response.overall_confidence,
+                    reasons=ml_response.review_reasons
+                )
+    
+    # Step 2: Standard accreditation validation and run
+    # (ML attributes are optional hints; human expert judgment is always final)
+    validator = DwellingValidator(dwelling_id, floor_plan_path)
+    
+    if ml_attributes:
+        # Pass ML hints to validator (for pre-filling review UI, etc.)
+        validator.set_ml_hints(ml_attributes)
+    
+    validation_result = await validator.validate()
+    
+    # Step 3: Human expert review (mandatory)
+    if validation_result.has_issues:
+        await route_to_expert_review(validation_result, ml_attributes)
+    
+    return validation_result
+
+# In accreditation CLI
+result = asyncio.run(
+    accreditation_with_ml_assist(
+        dwelling_id="dwelling-101",
+        floor_plan_path="./data/sources/floor_plans/dwelling_101.pdf"
+    )
+)
+```
+
+### Error Handling for ML Service
+
+```python
+async def robust_ml_extract(dwelling_id: str, floor_plan_path: str):
+    """Robust extraction with fallback if ML service unavailable."""
+    try:
+        async with MLInferenceClient("http://scanq-ml-inference:8000", timeout=30) as ml_client:
+            response = await ml_client.extract_attributes(
+                NatHERSAttributesRequest(
+                    dwelling_id=dwelling_id,
+                    floor_plan_pdf_path=floor_plan_path
+                )
+            )
+            return response
+    
+    except TimeoutError:
+        logger.warning(
+            "ml_service_timeout",
+            dwelling_id=dwelling_id,
+            fallback="human_only"
+        )
+        return None  # Fall back to manual review
+    
+    except ConnectionError:
+        logger.warning(
+            "ml_service_unavailable",
+            dwelling_id=dwelling_id,
+            fallback="human_only"
+        )
+        return None  # Fall back to manual review
+    
+    except Exception as e:
+        logger.error(
+            "ml_service_error",
+            dwelling_id=dwelling_id,
+            error=str(e),
+            fallback="human_only"
+        )
+        return None  # Always fallback gracefully
+
+# Usage
+ml_response = asyncio.run(robust_ml_extract("dwelling-101", "floor_plan.pdf"))
+if ml_response is None:
+    print("ML service unavailable; proceeding with manual review only")
+```
+
+---
+
 ## Common Pitfalls
 
 ### ❌ Creating Client Without Context Manager

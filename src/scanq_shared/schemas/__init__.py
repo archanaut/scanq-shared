@@ -11,12 +11,21 @@ Export policy (Phase 1):
 
 from .auth import ServiceTokenRequest, ServiceTokenResponse
 from .context import ContextResolveRequest, ContextResolveResponse
+from .environment import EnvironmentCreateRequest, EnvironmentResponse
 from .errors import ErrorResponse, ErrorSchema
+from .intake import DevLoginRequest, IntakeDraftGenerateRequest
+from .job import CostEstimate, JobResponse, ProviderProfile
 from .lineage import (
     LineageFinalizeRequest,
     LineageFinalizeResponse,
     LineageRegisterRequest,
     LineageRegisterResponse,
+)
+from .project import (
+    ProjectCreateRequest,
+    ProjectEnvironmentResponse,
+    ProjectResponse,
+    ProjectUpdateRequest,
 )
 
 __all__ = [
@@ -30,4 +39,15 @@ __all__ = [
     "LineageFinalizeResponse",
     "ErrorSchema",
     "ErrorResponse",
+    "ProjectCreateRequest",
+    "ProjectUpdateRequest",
+    "ProjectResponse",
+    "ProjectEnvironmentResponse",
+    "EnvironmentCreateRequest",
+    "EnvironmentResponse",
+    "IntakeDraftGenerateRequest",
+    "DevLoginRequest",
+    "JobResponse",
+    "ProviderProfile",
+    "CostEstimate",
 ]

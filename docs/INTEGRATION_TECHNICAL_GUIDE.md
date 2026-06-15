@@ -1084,6 +1084,187 @@ uv run scanq-accredit evidence dwelling_101
 
 ---
 
+## Part 5: ML Inference Integration
+
+### ML Request and Response Contracts
+
+scanq-ml-inference integrates existing floor-plan tools and extracts NatHERS attributes. Request/response contracts belong in `scanq-shared` for shared use by accreditation and training-studio.
+
+#### Floor-Plan Tracing Request
+
+```python
+# scanq-shared/models/ml.py
+
+class FloorPlanTraceRequest(BaseModel):
+    """Request floor-plan tracing and basic geometry extraction."""
+    dwelling_id: str
+    floor_plan_pdf_path: str | None = None  # Local path or storage ref
+    floor_plan_url: str | None = None  # Remote URL (s3://, gcs://, http://)
+    include_ocr: bool = Field(default=True)
+    tool_preference: str = Field(default="auto")  # "tectly", "rasterscan", "opensource", "auto"
+    trace_confidence_threshold: float = Field(default=0.7, ge=0, le=1)
+
+
+class FloorPlanTraceResponse(BaseModel):
+    """Floor-plan tracing result with confidence and provenance."""
+    tracing_id: str  # UUID
+    dwelling_id: str
+    tool_used: str  # "tectly", "rasterscan", "yolo_sam", etc.
+    tool_version: str
+    
+    geometry: dict[str, object]  # GeoJSON or normalized schema
+    text_extractions: list[dict[str, str]]  # OCR results + confidence
+    
+    confidence_score: float = Field(ge=0, le=1)
+    warnings: list[str] = []
+    
+    metadata: dict[str, object] = Field(default_factory=dict)
+    created_at: datetime
+```
+
+#### NatHERS Attribute Extraction Request
+
+```python
+# scanq-shared/models/ml.py
+
+class NatHERSAttributesRequest(BaseModel):
+    """Extract NatHERS-relevant attributes from floor plan and specification."""
+    dwelling_id: str
+    floor_plan_trace_id: str | None = None  # Use existing trace if available
+    floor_plan_pdf_path: str | None = None
+    specification_pdf_path: str | None = None
+    
+    extract_scale: bool = Field(default=True)
+    extract_windows: bool = Field(default=True)
+    extract_materials: bool = Field(default=True)
+    extract_hvac: bool = Field(default=True)
+    extract_zoning: bool = Field(default=True)
+
+
+class WindowAttribute(BaseModel):
+    """Extracted window properties."""
+    location: str  # "living_room_north", etc.
+    type: str  # "single_hung", "casement", "sliding", "fixed"
+    orientation: str  # "north", "south", etc.
+    u_value: float | None = None
+    shgc: float | None = None
+    confidence: float = Field(ge=0, le=1)
+
+
+class NatHERSAttributesResponse(BaseModel):
+    """Extracted NatHERS attributes with confidence scores."""
+    attributes_id: str  # UUID
+    dwelling_id: str
+    
+    scale_calibration: dict[str, object] = {}  # {factor: 0.95, confidence: 0.88}
+    windows: list[WindowAttribute] = []
+    materials: dict[str, object] = {}  # Material type → confidence score
+    hvac_equipment: list[dict[str, object]] = []
+    thermal_zoning: dict[str, object] = {}
+    
+    overall_confidence: float = Field(ge=0, le=1)
+    review_required: bool  # Flag high-uncertainty cases for human review
+    review_reasons: list[str] = []
+    
+    evidence_items: list[dict[str, object]] = []  # References to OCR results, detected features, etc.
+    metadata: dict[str, object] = Field(default_factory=dict)
+    created_at: datetime
+```
+
+### Tool Adapter Interface
+
+scanq-ml-inference wraps commercial and open-source tools with a common adapter interface. This allows swapping implementations without changing consumer code.
+
+```python
+# scanq-ml-inference/src/tools/base.py
+
+from abc import ABC, abstractmethod
+from typing import Optional
+
+class FloorPlanToolAdapter(ABC):
+    """Common interface for floor-plan tracing tools."""
+    
+    tool_name: str
+    tool_version: str
+    
+    @abstractmethod
+    async def trace_floor_plan(
+        self, 
+        dwelling_id: str,
+        pdf_path_or_url: str,
+        include_ocr: bool = True
+    ) -> FloorPlanTraceResponse:
+        """Trace floor plan and return normalized geometry + OCR."""
+        pass
+    
+    @abstractmethod
+    async def check_availability(self) -> dict[str, object]:
+        """Check tool status (API available, quota, GPU ready, etc.)."""
+        pass
+```
+
+**Example Implementations**:
+
+```python
+# scanq-ml-inference/src/tools/tectly_adapter.py
+class TectlyAdapter(FloorPlanToolAdapter):
+    tool_name = "tectly"
+    
+    async def trace_floor_plan(self, dwelling_id: str, pdf_path_or_url: str, include_ocr: bool) -> FloorPlanTraceResponse:
+        # Call Tectly API, normalize response, return FloorPlanTraceResponse
+        ...
+
+# scanq-ml-inference/src/tools/opensource_adapter.py
+class OpenSourceAdapter(FloorPlanToolAdapter):
+    tool_name = "yolo_sam"
+    
+    async def trace_floor_plan(self, dwelling_id: str, pdf_path_or_url: str, include_ocr: bool) -> FloorPlanTraceResponse:
+        # Load YOLO + SAM models, run inference, normalize response
+        ...
+```
+
+### Accreditation Integration Example
+
+```python
+# scanq-accreditation/src/commands/analyze.py
+# Optional: call ML service before running accreditation
+
+import asyncio
+from scanq_shared.clients import MLInferenceClient
+from scanq_shared.models import NatHERSAttributesRequest
+
+async def optional_ml_assist(dwelling_id: str, floor_plan_path: str):
+    """Optional: Pre-extract attributes using ML before human review."""
+    async with MLInferenceClient("http://scanq-ml-inference:8000") as ml_client:
+        # Request NatHERS attribute extraction
+        response = await ml_client.extract_attributes(
+            NatHERSAttributesRequest(
+                dwelling_id=dwelling_id,
+                floor_plan_pdf_path=floor_plan_path,
+                extract_windows=True,
+                extract_materials=True
+            )
+        )
+        
+        # Log high-confidence extractions for downstream review
+        log.info(
+            "ml_attributes_extracted",
+            dwelling_id=dwelling_id,
+            confidence=response.overall_confidence,
+            review_required=response.review_required
+        )
+        
+        return response
+
+# In accreditation run command:
+if config.enable_ml_assist:
+    ml_response = asyncio.run(optional_ml_assist(dwelling_id, floor_plan_path))
+    # Use ml_response.windows, ml_response.materials to pre-fill review UI
+    # But always require human expert review before finalizing
+```
+
+---
+
 ## Deployment Considerations
 
 ### Private PyPI (Artifact Registry)
