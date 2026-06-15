@@ -1,4 +1,8 @@
-"""Training-studio specific data models."""
+"""Training-studio specific data models.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
 
 from datetime import datetime
 from typing import Any

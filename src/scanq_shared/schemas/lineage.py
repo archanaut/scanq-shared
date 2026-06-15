@@ -1,4 +1,8 @@
-"""Lineage tracking schemas for audit trails and cross-system integration."""
+"""Lineage tracking schemas for audit trails and cross-system integration.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
 
 from datetime import datetime
 from typing import Any

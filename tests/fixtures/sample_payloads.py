@@ -1,6 +1,9 @@
-"""Sample payloads for testing and documentation."""
+"""Sample payloads for testing and documentation.
 
-from datetime import datetime, timedelta
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
+
 
 # ============================================================================
 # Context Resolution Samples

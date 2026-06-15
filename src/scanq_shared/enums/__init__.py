@@ -1,6 +1,30 @@
-"""Common enumeration types used across ScanQ services."""
+"""Common enumeration types used across ScanQ services.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+
+Export policy (Phase 1):
+  Training-studio-specific enums are defined in ``training_studio.py``
+  and re-exported here for consumer convenience.  Generic/shared enums
+  (ServiceStatus, ErrorCode, EntityType) are defined directly in this
+  module.
+
+  Adding a new enum class or value is a MINOR change.
+  Removing or renaming an enum class or value is a MAJOR change.
+"""
 
 from enum import Enum
+
+# ---------------------------------------------------------------------------
+# Training-studio-specific enums (canonical source: training_studio.py)
+# ---------------------------------------------------------------------------
+
+from .training_studio import ContextStatus, LineageEventType, TokenStatus
+
+
+# ---------------------------------------------------------------------------
+# Generic shared enums
+# ---------------------------------------------------------------------------
 
 
 class ServiceStatus(str, Enum):
@@ -9,24 +33,6 @@ class ServiceStatus(str, Enum):
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNAVAILABLE = "unavailable"
-
-
-class TokenStatus(str, Enum):
-    """Status of an auth service token."""
-
-    ACTIVE = "active"
-    EXPIRED = "expired"
-    REVOKED = "revoked"
-    PENDING = "pending"
-
-
-class ContextStatus(str, Enum):
-    """Status of a context resolution operation."""
-
-    RESOLVED = "resolved"
-    PARTIAL = "partial"  # Some fields resolved, others not found
-    NOTFOUND = "not_found"
-    ERROR = "error"
 
 
 class ErrorCode(str, Enum):
@@ -52,11 +58,13 @@ class EntityType(str, Enum):
     LINEAGE_RECORD = "lineage_record"
 
 
-class LineageEventType(str, Enum):
-    """Types of lineage events for audit trails."""
-
-    REGISTERED = "registered"
-    UPDATED = "updated"
-    FINALIZED = "finalized"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+__all__ = [
+    # training_studio
+    "ContextStatus",
+    "TokenStatus",
+    "LineageEventType",
+    # generic
+    "ServiceStatus",
+    "ErrorCode",
+    "EntityType",
+]

@@ -1,5 +1,8 @@
 """Typed HTTP client for training-studio support endpoints.
 
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+
 Provides typed, validated access to training-studio support APIs:
 - Context resolution (project, environment, actor lookup)
 - Service token issuance
@@ -19,6 +22,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from ..enums import LineageEventType
 from ..schemas import (
     ContextResolveRequest,
     ContextResolveResponse,
@@ -30,7 +34,7 @@ from ..schemas import (
     ServiceTokenResponse,
 )
 from .base import BaseClient
-from .exceptions import APIError, TimeoutError, ValidationError as ClientValidationError
+from .exceptions import ValidationError as ClientValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +249,7 @@ class TrainingStudioClient(BaseClient):
     async def finalize_lineage(
         self,
         lineage_id: str,
-        status: str,
+        status: str | LineageEventType,
         summary: str | None = None,
         metrics: dict[str, Any] | None = None,
     ) -> LineageFinalizeResponse:
@@ -269,7 +273,7 @@ class TrainingStudioClient(BaseClient):
         """
         request = LineageFinalizeRequest(
             lineage_id=lineage_id,
-            status=status,
+            status=LineageEventType(status),
             summary=summary,
             metrics=metrics or {},
         )

@@ -1,11 +1,19 @@
-"""Base client with retry, timeout, and tracing support."""
+"""Base client with retry, timeout, and tracing support.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
 
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 import httpx
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+_RequestT = TypeVar("_RequestT", bound=BaseModel)
+_ResponseT = TypeVar("_ResponseT", bound=BaseModel)
 
 
 class BaseClient:
@@ -94,7 +102,7 @@ class BaseClient:
 
                 return response
 
-            except httpx.TimeoutException as e:
+            except httpx.TimeoutException:
                 if attempt == self.max_retries:
                     raise
                 logger.warning(f"Timeout on attempt {attempt + 1}, retrying...")
@@ -107,6 +115,55 @@ class BaseClient:
                 )
 
         raise RuntimeError("Unexpected: retry loop exhausted")
+
+    async def _typed_request(
+        self,
+        method: str,
+        url: str,
+        request_model: _RequestT,
+        response_type: type[_ResponseT],
+    ) -> _ResponseT:
+        """Typed request helper: serialize request, call API, deserialize response.
+
+        This helper encapsulates the standard request/response translation
+        pattern used by all Phase 1 fixed-inventory operations:
+        1. Serialize the Pydantic request model to JSON.
+        2. Call ``_request`` for retry/tracing handling.
+        3. Raise on HTTP error status.
+        4. Deserialize and validate the response against ``response_type``.
+
+        Args:
+            method: HTTP method (e.g., "POST").
+            url: Path relative to base_url.
+            request_model: Pydantic model instance to send as the JSON body.
+            response_type: Pydantic model class to parse the JSON response into.
+
+        Returns:
+            A validated instance of ``response_type``.
+
+        Raises:
+            httpx.HTTPStatusError: On 4xx/5xx responses.
+            scanq_shared.clients.exceptions.ValidationError: If the response
+                body does not match ``response_type``.
+        """
+        from pydantic import ValidationError as PydanticValidationError
+
+        from .exceptions import ValidationError as ClientValidationError
+
+        response = await self._request(
+            method,
+            url,
+            json=request_model.model_dump(mode="json"),
+        )
+        response.raise_for_status()
+
+        try:
+            return response_type(**response.json())
+        except PydanticValidationError as exc:
+            raise ClientValidationError(
+                f"Response validation failed: {exc.error_count()} errors",
+                details=exc.errors(),
+            ) from exc
 
     async def close(self) -> None:
         """Close the async client connection."""

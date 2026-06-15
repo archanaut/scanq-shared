@@ -1,4 +1,15 @@
-"""Client exceptions."""
+"""Client exceptions.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from scanq_shared.schemas.errors import ErrorResponse
 
 
 class ClientError(Exception):
@@ -66,35 +77,62 @@ class AuthenticationError(ClientError):
 class ValidationError(ClientError):
     """Raised for request/response validation failures."""
 
-    def __init__(self, message: str, details: dict | None = None) -> None:
+    def __init__(self, message: str, details: list[Any] | dict[str, Any] | None = None) -> None:
         """Initialize ValidationError.
 
         Args:
             message: Error message
-            details: Additional validation error details
+            details: Additional validation error details (list of Pydantic error
+                dicts, or a plain dict for other cases).
         """
         super().__init__(message, code="validation_error")
-        self.details = details or {}
+        self.details: list[Any] | dict[str, Any] = details if details is not None else {}
 
 
 class APIError(ClientError):
-    """Raised for API-level errors (4xx, 5xx responses)."""
+    """Raised for API-level errors (4xx, 5xx responses).
+
+    Aligned with the shared ``ErrorResponse`` envelope so callers can
+    inspect ``status_code``, ``code``, and ``details`` without parsing
+    the raw HTTP response themselves.
+    """
 
     def __init__(
         self,
         status_code: int,
         code: str,
         message: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
+        request_id: str | None = None,
     ) -> None:
         """Initialize APIError.
 
         Args:
             status_code: HTTP status code
-            code: API error code
-            message: Error message
-            details: Additional error details
+            code: API error code (from ErrorSchema.code)
+            message: Error message (from ErrorSchema.message)
+            details: Additional error details (from ErrorSchema.details)
+            request_id: Request tracing ID (from ErrorResponse.request_id)
         """
         super().__init__(message, code=code)
         self.status_code = status_code
         self.details = details or {}
+        self.request_id = request_id
+
+    @classmethod
+    def from_error_response(cls, error_response: "ErrorResponse") -> "APIError":
+        """Construct an APIError from a shared ErrorResponse envelope.
+
+        Args:
+            error_response: Parsed ErrorResponse instance.
+
+        Returns:
+            APIError populated from the envelope fields.
+        """
+        return cls(
+            status_code=error_response.error.status_code,
+            code=error_response.error.code,
+            message=error_response.error.message,
+            details=error_response.error.details,
+            request_id=error_response.request_id,
+        )

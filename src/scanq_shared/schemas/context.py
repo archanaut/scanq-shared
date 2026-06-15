@@ -1,4 +1,8 @@
-"""Context resolution schemas for training-studio support endpoints."""
+"""Context resolution schemas for training-studio support endpoints.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
 
 from datetime import datetime
 from typing import Any

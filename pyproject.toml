@@ -1,9 +1,11 @@
 [project]
 name = "scanq-shared"
-version = "0.1.0"
+version = "1.0.0"
 description = "Shared contracts and typed clients for ScanQ services"
 readme = "README.md"
 requires-python = ">=3.14"
+license = {text = "Proprietary"}
+authors = [{name = "Archanaut Pty Ltd"}]
 dependencies = [
   "pydantic>=2.9.2",
   "typing-extensions>=4.10.0",
@@ -14,6 +16,7 @@ dependencies = [
 dev = [
   "mypy>=1.11.2",
   "pytest>=8.3.3",
+  "pytest-asyncio>=0.24.0",
   "ruff>=0.6.9",
 ]
 
@@ -23,3 +26,7 @@ build-backend = "hatchling.build"
 
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+asyncio_mode = "auto"

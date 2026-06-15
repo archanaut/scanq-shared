@@ -1,9 +1,19 @@
-"""Common base models and data types used across scanq-shared."""
+"""Common base models and data types used across scanq-shared.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+
+Export policy (Phase 1):
+  All public Phase 1 domain models are exported from this module.
+  Adding a new export is a MINOR change; removing one is MAJOR.
+"""
 
 from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from .training_studio import ActorModel, EnvironmentModel, ProjectModel
 
 
 class BaseResponse(BaseModel):
@@ -72,3 +82,17 @@ class PaginatedResponse(BaseModel):
     limit: int = Field(..., description="Limit parameter used")
     offset: int = Field(..., description="Offset parameter used")
     items: list[Any] = Field(default=[], description="Items in this page")
+
+
+__all__ = [
+    # base / shared
+    "BaseResponse",
+    "ErrorDetail",
+    "ErrorResponse",
+    "PaginationParams",
+    "PaginatedResponse",
+    # training_studio domain models
+    "ProjectModel",
+    "EnvironmentModel",
+    "ActorModel",
+]

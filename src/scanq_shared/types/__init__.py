@@ -1,4 +1,8 @@
-"""Type aliases and runtime type checks."""
+"""Type aliases and runtime type checks.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
 
 from typing import TypeAlias
 

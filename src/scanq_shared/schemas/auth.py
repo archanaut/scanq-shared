@@ -1,6 +1,10 @@
-"""Authentication token schemas for training-studio support endpoints."""
+"""Authentication token schemas for training-studio support endpoints.
 
-from datetime import datetime, timedelta
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
+
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 

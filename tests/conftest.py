@@ -1,10 +1,13 @@
-"""Pytest configuration and shared fixtures."""
+"""Pytest configuration and shared fixtures.
+
+Copyright © 2026 Archanaut Pty Ltd. All rights reserved.
+Licensed under the Archanaut Proprietary License.
+"""
 
 import pytest
 from datetime import datetime, timedelta
 from scanq_shared.enums import (
     ContextStatus,
-    ErrorCode,
     TokenStatus,
     LineageEventType,
 )
