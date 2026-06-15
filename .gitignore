@@ -13,3 +13,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Spec Kit runtime state
+.specify/extensions/companion/
+specs/*/.spec-context.json
+
+# Generated companion prompt/agent files
+.github/agents/speckit.companion.*.agent.md
+.github/prompts/speckit.companion.*.prompt.md
+
