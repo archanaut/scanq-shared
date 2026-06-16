@@ -11,9 +11,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
-from scanq_shared.clients.exceptions import APIError
+from scanq_shared.clients.exceptions import APIError, ValidationError as ClientValidationError
 from scanq_shared.clients.training_studio import TrainingStudioClient
+from scanq_shared.enums import MediaType
 
 
 BASE_URL = "http://training-studio-test:8000"
@@ -110,3 +112,70 @@ class TestFinalizeLineageErrors:
                     lineage_id="lin-missing",
                     status="finalized",
                 )
+
+
+class TestComposeMediaErrors:
+    @pytest.mark.asyncio
+    async def test_validation_error_raised_for_empty_source_media_refs(self):
+        client = TrainingStudioClient(BASE_URL)
+        with pytest.raises(PydanticValidationError):
+            await client.compose_media(
+                source_media_refs=[],
+                compose_type=MediaType.FLOOR_PLAN,
+            )
+
+    @pytest.mark.asyncio
+    async def test_422_raises_validation_error_from_error_envelope(self):
+        body = {
+            "code": "validation_error",
+            "message": "Validation failed.",
+            "detail": {"compose_type": "unsupported"},
+            "correlation_id": "corr-compose-err-001",
+        }
+        mock_resp = _mock_http_error(422, body)
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
+            with pytest.raises(ClientValidationError) as exc:
+                await client.compose_media(
+                    source_media_refs=["media-floor-001"],
+                    compose_type=MediaType.FLOOR_PLAN,
+                )
+        assert exc.value.code == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_500_raises_api_error_from_error_envelope(self):
+        body = {
+            "code": "internal_error",
+            "message": "Compose failed.",
+            "detail": {"error_id": "err-compose-001"},
+            "correlation_id": "corr-compose-err-002",
+        }
+        mock_resp = _mock_http_error(500, body)
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
+            with pytest.raises(APIError) as exc:
+                await client.compose_media(
+                    source_media_refs=["media-floor-001"],
+                    compose_type="floor_plan",
+                )
+        assert exc.value.code == "internal_error"
+
+    @pytest.mark.asyncio
+    async def test_unknown_enum_value_is_preserved_gracefully(self):
+        body = {
+            "compose_id": "compose-unknown-001",
+            "status": "queued",
+            "output_media_ref": None,
+            "composed_at": None,
+            "partial_items": [],
+            "request_id": None,
+        }
+        mock_resp = _mock_http_error(200, body)
+        mock_resp.raise_for_status = MagicMock()
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(client, "_request", new=AsyncMock(return_value=mock_resp)):
+            result = await client.compose_media(
+                source_media_refs=["media-floor-001"],
+                compose_type=MediaType.FLOOR_PLAN,
+            )
+        assert result.status == "queued"

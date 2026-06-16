@@ -1,7 +1,7 @@
 """Version information for scanq-shared."""
 
-__version__ = "1.1.0"
-__version_info__ = (1, 1, 0)
+__version__ = "1.2.0"
+__version_info__ = (1, 2, 0)
 
 __author__ = "Archanaut Pty Ltd"
 __license__ = "Proprietary"
@@ -14,7 +14,7 @@ __copyright__ = "Copyright © 2026 Archanaut Pty Ltd. All rights reserved."
 # The release that introduced the shared Phase 1 contract surface.
 # Consumers must depend on >= this version to use shared schemas/clients.
 PHASE1_RELEASE = "1.0.0"
-PHASE2_RELEASE = "1.1.0"
+PHASE2_RELEASE = "1.2.0"
 
 # Minimum compatible consumer package version.
 # Contracts introduced in PHASE1_RELEASE are guaranteed stable for consumers
@@ -28,6 +28,6 @@ DUAL_SUPPORT_WINDOW = 1
 # Human-readable compatibility note surfaced in release notes.
 COMPATIBILITY_NOTE = (
     f"scanq-shared {PHASE2_RELEASE} adds shared project/environment/intake/job, "
-    "dwelling and ML inference contracts, MLInferenceClient, and typed cross-repo "
+    "dwelling, ML inference, and media-compose contracts, MLInferenceClient, and typed cross-repo "
     "enums while preserving backward compatibility for Phase 1 consumers."
 )

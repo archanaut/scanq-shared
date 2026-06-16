@@ -150,6 +150,36 @@ ERROR_RESPONSE_INTERNAL = {
     "request_id": "req-uuid-12345",
 }
 
+ERROR_ENVELOPE_INVALID_REQUEST = {
+    "code": "invalid_request",
+    "message": "Validation error",
+    "detail": {
+        "compose_type": "must be one of: floor_plan, elevation, site_plan, photograph",
+    },
+    "correlation_id": "corr-err-001",
+}
+
+# ============================================================================
+# Media Compose Samples
+# ============================================================================
+
+MEDIA_COMPOSE_REQUEST = {
+    "source_media_refs": ["media-floor-001", "media-elev-002"],
+    "compose_type": "floor_plan",
+    "output_format": "pdf",
+    "parameters": {"include_annotations": True},
+    "metadata": {"correlation_id": "corr-compose-001"},
+}
+
+MEDIA_COMPOSE_RESPONSE = {
+    "compose_id": "compose-001",
+    "status": "complete",
+    "output_media_ref": "media-compose-999",
+    "composed_at": "2026-06-15T10:40:00Z",
+    "partial_items": ["media-floor-001", "media-elev-002"],
+    "request_id": "req-compose-001",
+}
+
 # ============================================================================
 # Phase 2 Samples (v1.1.0)
 # ============================================================================

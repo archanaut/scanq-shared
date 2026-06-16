@@ -12,9 +12,10 @@ Export policy (Phase 1):
 from .auth import ServiceTokenRequest, ServiceTokenResponse
 from .context import ContextResolveRequest, ContextResolveResponse
 from .environment import EnvironmentCreateRequest, EnvironmentResponse
-from .errors import ErrorResponse, ErrorSchema
+from .errors import ErrorEnvelope, ErrorResponse, ErrorSchema
 from .intake import DevLoginRequest, IntakeDraftGenerateRequest
 from .job import CostEstimate, JobResponse, ProviderProfile
+from .media_compose import MediaComposeRequest, MediaComposeResponse
 from .lineage import (
     LineageFinalizeRequest,
     LineageFinalizeResponse,
@@ -38,6 +39,7 @@ __all__ = [
     "LineageFinalizeRequest",
     "LineageFinalizeResponse",
     "ErrorSchema",
+    "ErrorEnvelope",
     "ErrorResponse",
     "ProjectCreateRequest",
     "ProjectUpdateRequest",
@@ -50,4 +52,6 @@ __all__ = [
     "JobResponse",
     "ProviderProfile",
     "CostEstimate",
+    "MediaComposeRequest",
+    "MediaComposeResponse",
 ]

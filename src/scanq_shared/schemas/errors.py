@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from ..enums import ErrorCode
+
 
 class ErrorSchema(BaseModel):
     """Standard error response schema."""
@@ -77,3 +79,18 @@ class ErrorResponse(BaseModel):
                     details={"raw": data},
                 ),
             )
+
+
+class ErrorEnvelope(BaseModel):
+    """Standardized error envelope used by typed clients."""
+
+    code: ErrorCode = Field(..., description="Machine-readable error code")
+    message: str = Field(..., description="Human-readable error message")
+    detail: Any | None = Field(
+        default=None,
+        description="Optional structured error payload",
+    )
+    correlation_id: str | None = Field(
+        default=None,
+        description="Optional correlation identifier",
+    )

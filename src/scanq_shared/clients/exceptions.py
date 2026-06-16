@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 if TYPE_CHECKING:
-    from scanq_shared.schemas.errors import ErrorResponse
+    from scanq_shared.schemas.errors import ErrorEnvelope, ErrorResponse
 
 
 class ClientError(Exception):
@@ -139,6 +139,17 @@ class APIError(ClientError):
             request_id=error_response.request_id,
         )
 
+    @classmethod
+    def from_error_envelope(cls, error_envelope: "ErrorEnvelope") -> "APIError":
+        """Construct an APIError from a shared ErrorEnvelope."""
+        return cls(
+            status_code=500,
+            code=error_envelope.code,
+            message=error_envelope.message,
+            details=error_envelope.detail if isinstance(error_envelope.detail, dict) else {"detail": error_envelope.detail} if error_envelope.detail is not None else {},
+            request_id=error_envelope.correlation_id,
+        )
+
 
 def map_httpx_error(
     exc: Exception,
@@ -159,11 +170,21 @@ def map_httpx_error(
         request_id: str | None = None
         try:
             payload = response.json()
-            error = payload.get("error", payload)
-            code = error.get("code", code)
-            message = error.get("message", message)
-            details = error.get("details") or {}
-            request_id = payload.get("request_id") or error.get("request_id")
+            if isinstance(payload, dict) and "code" in payload and "message" in payload:
+                code = payload.get("code", code)
+                message = payload.get("message", message)
+                detail_value = payload.get("detail")
+                if isinstance(detail_value, dict):
+                    details = detail_value
+                elif detail_value is not None:
+                    details = {"detail": detail_value}
+                request_id = payload.get("correlation_id")
+            else:
+                error = payload.get("error", payload)
+                code = error.get("code", code)
+                message = error.get("message", message)
+                details = error.get("details") or {}
+                request_id = payload.get("request_id") or error.get("request_id")
         except Exception:
             details = {"raw_text": response.text}
         if code == "validation_error":

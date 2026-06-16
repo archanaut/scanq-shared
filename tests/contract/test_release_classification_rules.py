@@ -69,7 +69,7 @@ class TestVersionConstants:
 
     def test_current_release_is_minor_from_phase1(self):
         assert PHASE1_RELEASE == "1.0.0"
-        assert PHASE2_RELEASE == "1.1.0"
+        assert PHASE2_RELEASE == "1.2.0"
         assert __version__ == PHASE2_RELEASE
 
 

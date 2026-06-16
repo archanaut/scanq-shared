@@ -14,10 +14,13 @@ from datetime import datetime, timezone
 from scanq_shared.schemas import (
     ContextResolveRequest,
     ContextResolveResponse,
+    ErrorEnvelope,
     LineageFinalizeRequest,
     LineageFinalizeResponse,
     LineageRegisterRequest,
     LineageRegisterResponse,
+    MediaComposeRequest,
+    MediaComposeResponse,
     ServiceTokenRequest,
     ServiceTokenResponse,
     ErrorResponse,
@@ -26,7 +29,7 @@ from scanq_shared.schemas import (
     IntakeDraftGenerateRequest,
     JobResponse,
 )
-from scanq_shared.enums import DwellingSource, ExecutionStatus, LineageEventType
+from scanq_shared.enums import DwellingSource, ExecutionStatus, LineageEventType, MediaComposeStatus, MediaType
 
 
 class TestContextRoundtrip:
@@ -147,6 +150,46 @@ class TestErrorResponseRoundtrip:
         data = json.loads(json_str)
         rebuilt = ErrorResponse(**data)
         assert rebuilt.request_id == "req-abc"
+
+
+class TestMediaComposeRoundtrip:
+    def test_request_dict_roundtrip(self):
+        req = MediaComposeRequest(
+            source_media_refs=["media-floor-001", "media-elev-002"],
+            compose_type=MediaType.FLOOR_PLAN,
+            output_format="pdf",
+            parameters={"include_annotations": True},
+            metadata={"correlation_id": "corr-compose-001"},
+        )
+        dumped = req.model_dump()
+        rebuilt = MediaComposeRequest(**dumped)
+        assert rebuilt == req
+
+    def test_response_dict_roundtrip(self):
+        resp = MediaComposeResponse(
+            compose_id="compose-001",
+            status=MediaComposeStatus.COMPLETE,
+            output_media_ref="media-compose-999",
+            composed_at=datetime.now(tz=timezone.utc),
+            partial_items=["media-floor-001"],
+            request_id="req-compose-001",
+        )
+        dumped = resp.model_dump()
+        rebuilt = MediaComposeResponse(**dumped)
+        assert rebuilt.compose_id == resp.compose_id
+
+
+class TestErrorEnvelopeRoundtrip:
+    def test_dict_roundtrip(self):
+        err = ErrorEnvelope(
+            code="not_found",
+            message="Not found.",
+            detail={"project_id": "proj-x"},
+            correlation_id="corr-001",
+        )
+        dumped = err.model_dump()
+        rebuilt = ErrorEnvelope(**dumped)
+        assert rebuilt.code == "not_found"
 
 
 class TestUs1ImportSurface:

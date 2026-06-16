@@ -108,6 +108,34 @@ ERROR_RESPONSE_V1 = {
 }
 
 # ---------------------------------------------------------------------------
+# media.compose — POST /accreditation/media/compose
+# ---------------------------------------------------------------------------
+
+MEDIA_COMPOSE_REQUEST_V1_2 = {
+    "source_media_refs": ["media-floor-001", "media-elev-002"],
+    "compose_type": "floor_plan",
+    "output_format": "pdf",
+    "parameters": {"include_annotations": True},
+    "metadata": {"correlation_id": "corr-compose-001"},
+}
+
+MEDIA_COMPOSE_RESPONSE_V1_2 = {
+    "compose_id": "compose-compat-001",
+    "status": "complete",
+    "output_media_ref": "media-compose-999",
+    "composed_at": "2026-06-15T10:40:00Z",
+    "partial_items": ["media-floor-001", "media-elev-002"],
+    "request_id": "req-compat-006",
+}
+
+ERROR_ENVELOPE_V1_2 = {
+    "code": "invalid_request",
+    "message": "Validation error",
+    "detail": {"output_format": "must be a supported media format"},
+    "correlation_id": "corr-compat-006",
+}
+
+# ---------------------------------------------------------------------------
 # All v1 payload pairs (used in regression tests)
 # ---------------------------------------------------------------------------
 
@@ -154,4 +182,10 @@ COMPAT_V1_1_PAIRS = [
     ("project.create.request", PROJECT_CREATE_REQUEST_V1_1),
     ("dwelling.input", DWELLING_INPUT_V1_1),
     ("ml.floor_plan.trace.request", FLOOR_PLAN_TRACE_REQUEST_V1_1),
+]
+
+COMPAT_V1_2_PAIRS = [
+    ("media.compose.request", MEDIA_COMPOSE_REQUEST_V1_2),
+    ("media.compose.response", MEDIA_COMPOSE_RESPONSE_V1_2),
+    ("error.envelope", ERROR_ENVELOPE_V1_2),
 ]

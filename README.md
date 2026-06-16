@@ -27,6 +27,7 @@ This software is licensed under the Archanaut Proprietary License. See [LICENSE]
 | `auth.service-token` | `TrainingStudioClient.get_service_token` | `POST /accreditation/auth/service-token` |
 | `lineage.register` | `TrainingStudioClient.register_lineage` | `POST /accreditation/lineage/register` |
 | `lineage.finalize` | `TrainingStudioClient.finalize_lineage` | `POST /accreditation/lineage/{lineage_id}/finalize` |
+| `media.compose` | `TrainingStudioClient.compose_media` | `POST /accreditation/media/compose` |
 | `ml.floor-plan.trace` | `MLInferenceClient.trace_floor_plan` | `POST /ml/floor-plan/trace` |
 | `ml.nathers.attributes` | `MLInferenceClient.extract_nathers_attributes` | `POST /ml/nathers/attributes` |
 
@@ -57,8 +58,9 @@ async with MLInferenceClient("http://ml-inference:9000") as client:
 
 If your repository uses local contract definitions, migrate to imports from:
 - `scanq_shared.schemas` for project/environment/intake/job payloads
+- `scanq_shared.schemas` for media-compose and error-envelope payloads
 - `scanq_shared.models` for dwelling + ML inference contracts
-- `scanq_shared.enums` for `ConfidenceLevel`, `ExecutionStatus`, `DwellingSource`, and `CrossRepoErrorCode`
+- `scanq_shared.enums` for `ConfidenceLevel`, `ExecutionStatus`, `DwellingSource`, `CrossRepoErrorCode`, `MediaType`, and `MediaComposeStatus`
 - `scanq_shared.clients` for `MLInferenceClient`
 
 ## Development
@@ -72,4 +74,6 @@ mypy src                # Type check
 
 ## Version Policy
 
-All public contract changes follow SemVer. Current release is **1.1.0** (MINOR additive bump from 1.0.0).
+All public contract changes follow SemVer. Current release is **1.2.0** (MINOR additive bump from 1.1.0).
+
+See [docs/release-compatibility/v1.2.0.md](docs/release-compatibility/v1.2.0.md) for the upgrade notes.

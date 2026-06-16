@@ -25,6 +25,7 @@ from .ml_inference import (
     DwellingSource,
     ExecutionStatus,
 )
+from .accreditation import MediaComposeStatus, MediaType
 from .training_studio import ContextStatus, LineageEventType, TokenStatus
 
 
@@ -69,6 +70,8 @@ __all__ = [
     "ContextStatus",
     "TokenStatus",
     "LineageEventType",
+    "MediaType",
+    "MediaComposeStatus",
     "ConfidenceLevel",
     "ExecutionStatus",
     "DwellingSource",

@@ -2,10 +2,12 @@
 
 from typing import Any
 
-from ..enums import LineageEventType
+from ..enums import LineageEventType, MediaType
 from ..schemas import (
     ContextResolveRequest,
     ContextResolveResponse,
+    MediaComposeRequest,
+    MediaComposeResponse,
     LineageFinalizeRequest,
     LineageFinalizeResponse,
     LineageRegisterRequest,
@@ -103,3 +105,24 @@ class TrainingStudioClient(BaseClient):
             LineageFinalizeResponse,
         )
 
+    async def compose_media(
+        self,
+        source_media_refs: list[str],
+        compose_type: str | MediaType,
+        output_format: str = "pdf",
+        parameters: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> MediaComposeResponse:
+        request = MediaComposeRequest(
+            source_media_refs=source_media_refs,
+            compose_type=MediaType(compose_type),
+            output_format=output_format,
+            parameters=parameters or {},
+            metadata=metadata or {},
+        )
+        return await self._typed_request(
+            "POST",
+            "/accreditation/media/compose",
+            request,
+            MediaComposeResponse,
+        )

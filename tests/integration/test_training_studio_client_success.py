@@ -14,11 +14,12 @@ import httpx
 import pytest
 
 from scanq_shared.clients.training_studio import TrainingStudioClient
-from scanq_shared.enums import ContextStatus, LineageEventType, TokenStatus
+from scanq_shared.enums import ContextStatus, LineageEventType, MediaComposeStatus, MediaType, TokenStatus
 from scanq_shared.schemas import (
     ContextResolveResponse,
     LineageFinalizeResponse,
     LineageRegisterResponse,
+    MediaComposeResponse,
     ServiceTokenResponse,
 )
 
@@ -249,3 +250,55 @@ class TestFinalizeLineageSuccess:
             )
             fin = await client.finalize_lineage(lineage_id=reg.lineage_id, status="finalized")
         assert fin.status == LineageEventType.FINALIZED
+
+
+# ---------------------------------------------------------------------------
+# media.compose
+# ---------------------------------------------------------------------------
+
+
+class TestComposeMediaSuccess:
+    @pytest.mark.asyncio
+    async def test_returns_typed_response(self):
+        body = {
+            "compose_id": "compose-001",
+            "status": "complete",
+            "output_media_ref": "media-compose-999",
+            "composed_at": "2026-06-15T10:40:00Z",
+            "partial_items": ["media-floor-001", "media-elev-002"],
+            "request_id": "req-compose-001",
+        }
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(client, "_request", new=AsyncMock(return_value=_mock_response(200, body))):
+            result = await client.compose_media(
+                source_media_refs=["media-floor-001", "media-elev-002"],
+                compose_type=MediaType.FLOOR_PLAN,
+                output_format="pdf",
+                parameters={"include_annotations": True},
+                metadata={"correlation_id": "corr-compose-001"},
+            )
+        assert isinstance(result, MediaComposeResponse)
+        assert result.status == MediaComposeStatus.COMPLETE
+        assert result.output_media_ref == "media-compose-999"
+
+    @pytest.mark.asyncio
+    async def test_sends_media_compose_payload(self):
+        body = {
+            "compose_id": "compose-002",
+            "status": "pending",
+            "output_media_ref": None,
+            "composed_at": None,
+            "partial_items": [],
+            "request_id": None,
+        }
+        client = TrainingStudioClient(BASE_URL)
+        with patch.object(client, "_request", new=AsyncMock(return_value=_mock_response(200, body))) as mock_req:
+            await client.compose_media(
+                source_media_refs=["media-floor-001"],
+                compose_type="floor_plan",
+                output_format="png",
+            )
+        payload = mock_req.call_args.kwargs["json"]
+        assert payload["source_media_refs"] == ["media-floor-001"]
+        assert payload["compose_type"] == "floor_plan"
+        assert payload["output_format"] == "png"
